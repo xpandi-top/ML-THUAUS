@@ -25,17 +25,18 @@ def general_describe(df):
     print(df.dtypes)
 
 
-def plot_hist(df):
+def plot_hist(df, name=''):
     """
     visualize the dataset hist data, if want to dip into the specific data ,use df['feature'].hist()
     :param df:
     :return:
     """
     df.hist(xlabelsize=7, ylabelsize=7, figsize=(12, 10))
+    plt.savefig('./pic/'+name+'hist.png')
     plt.show()
 
 
-def correlation_map(df):
+def correlation_map(df, name =''):
     """
     correlation map for total data
     notice: the df can only be number no text. so some unique type of values should be transformed first
@@ -47,6 +48,7 @@ def correlation_map(df):
     plt.title('Pearson Correlation of Features', y=1.05, size=15)
     sns.heatmap(df.astype(float).corr(), linewidths=0.1, vmax=1.0,
                 square=True, cmap=colormap, linecolor='white', annot=True)
+    plt.savefig('./pic/' + name + 'correlation_map.png')
     plt.show()
 
 
