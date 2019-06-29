@@ -22,33 +22,34 @@ def process_nan_data(df):
     return df
 
 
-def scale_data(df, min_max_names=['Time'], std_names=['Amount'], replace=False):
+def min_max_scale_data(df, min_max_names=['Time'], replace=False):
     """
     scale data
     :param df:
     :param min_max_names:
-    :param std_names:
     :param replace:
     :return:
     """
-    print("===" * 4, 'transforming to one hot encoding', "===" * 4)
-    print(" min max scaling: ", min_max_names, '\n', "standard scaling : ", std_names)
     min_max_label = 'min_max_scale_' if replace is not True else ''
-    std_label = 'std_scale_' if replace is not True else ''
     for name in min_max_names:
         df[min_max_label + name] = MinMaxScaler().fit_transform(df[name].values.reshape(-1, 1))
         print(min_max_label + name)
+    print('===' * 4, 'min max scale finished')
+    return df
 
+
+def std_scale_data(df, std_names=['Amount'], replace=False):
+    std_label = 'std_scale_' if replace is not True else ''
     for name in std_names:
         df[std_label + name] = StandardScaler().fit_transform(df[name].values.reshape(-1, 1))
         print(std_label + name)
-
-    print('===' * 4, 'scale finished')
+    print('===' * 4, 'standard scale finished')
     return df
 
 
 # todo one hot encoding
 def one_hot_data(df, column_names, categories, replace=False):
+    print("===" * 4, 'transforming to one hot encoding', "===" * 4)
     one_hot_label = 'one_hot_' if replace is not True else ''
     enc = OneHotEncoder(categories=categories)
     for name in column_names:
@@ -90,7 +91,7 @@ def split_save(df, random_seed=10, size=0.3, name=''):
     from sklearn.model_selection import train_test_split
     df_train, df_test = train_test_split(df, test_size=size, random_state=random_seed)
     df_train.to_csv('./data/' + name + 'df_train.csv')
-    df_test.to_csv('./data/' + name + 'df_train.csv')
+    df_test.to_csv('./data/' + name + 'df_test.csv')
     print('===' * 4, 'split and save finished')
     return df_train, df_test
 
@@ -104,8 +105,9 @@ params = {
 if __name__ == '__main__':
     filename = './data/under_sample_data.csv'
     load_data = pd.read_csv(filename)
-    feature_names = load_data.columns.tolist()
+    # feature_names = load_data.columns.tolist()
 
-    data = scale_data(load_data)
-    data.columns.tolist()
-    load_data.columns.tolist()
+    # data = scale_data(load_data)
+    # data.columns.tolist()
+    # load_data.columns.tolist()
+    df_train, df_test = split_save(load_data)
