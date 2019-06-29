@@ -73,6 +73,7 @@ credit_data.head()
 ### 查看class分布
 count_classes = pd.value_counts(credit_data['Class'], sort=True).sort_index()
 count_classes.plot(kind='bar')
+
 ### data balance undersample
 data = credit_data.iloc[:, credit_data.columns != 'Class']
 classes = credit_data.iloc[:, credit_data.columns == "Class"]
