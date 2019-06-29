@@ -1,15 +1,16 @@
-# ML-THUAUS
-## 问题分析
+# ML-THUAUS 
+## 问题分析 ![](https://img.shields.io/badge/status-empty-red.svg)
 1. 分类问题
 2. 回归问题
 3. 评价函数，accuracy， recall， AUC 
 
-## 数据概览-可视化 overall_data.py 
+
+## 数据概览-可视化 overall_data.py ![](https://img.shields.io/badge/status-incompelete-yellow.svg)
 1. 数据的类型： 类别， 日期， 数值，ID
 2. 数据的分布：每个特征下的数据分布
 3. 数据之间的关系：correlation
 
-## 数据预处理- preprocessing.py
+## 数据预处理- preprocessing.py ![](https://img.shields.io/badge/status-incompelete-yellow.svg)
 1. 空值处理， 空值填充， 与删除 impute missing values  <https://scikit-learn.org/stable/modules/impute.html#impute>
 2. 根据不同的数据类型，将数据进行转化， one hot ，ordinary
 3. 数据归一化：standard scale， minmax scale
@@ -26,7 +27,7 @@
 3. Smote sample
 
 
-## 模型选择 *_model.py( 包括grid search)
+## 模型选择 *_model.py( 包括grid search)![](https://img.shields.io/badge/status-incompelete-yellow.svg)
 1. Xgboost
 2. Random Forest
 3. Ada
@@ -35,7 +36,7 @@
 6. rf
 7. Light gbm
 
-### 针对不均匀样本的：unbalanced_model.py
+### 针对不均匀样本的：unbalanced_model.py ![](https://img.shields.io/badge/status-empty-red.svg)
 1. Svm-one class
 sklearn
 2. Cost sensitive algorithm
@@ -44,10 +45,10 @@ costla
 ### 参数选择
 Grid search
 
-## 模型融合- model_ensembling.py
+## 模型融合- model_ensembling.py ![](https://img.shields.io/badge/status-incompelete-yellow.svg)
 Ensembling
 
-## 结果保存 - final_visualization.py
+## 结果保存 - final_visualization.py ![](https://img.shields.io/badge/status-empty-red.svg)
 1. 模型结构呈现
 2. 模型参数保存
 3. 数据结果保存
