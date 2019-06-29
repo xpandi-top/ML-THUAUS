@@ -71,7 +71,22 @@ def up_sample(df):
     return up_sample_df
 
 
+# todo: not finished
+def smote_sample(df):
+    smote_df = df
+    print('===' * 4, 'smote sampling finished')
+    return smote_df
+
+
 def split_save(df, random_seed=10, size=0.3, name=''):
+    """
+    split dataset
+    :param df:
+    :param random_seed:
+    :param size:
+    :param name:
+    :return:
+    """
     from sklearn.model_selection import train_test_split
     df_train, df_test = train_test_split(df, test_size=size, random_state=random_seed)
     df_train.to_csv('./data/' + name + 'df_train.csv')
@@ -80,11 +95,11 @@ def split_save(df, random_seed=10, size=0.3, name=''):
     return df_train, df_test
 
 
-def smote_sample(df):
-    smote_df = df
-    print('==='*4, 'smote sampling finished')
-    return smote_df
-
+params = {
+    'min_max_scale_columns': (scale_data, ['TIme'])
+    , 'std_scale_columns': ['Amount']
+    # 'one_hot_columns' : []
+}
 
 if __name__ == '__main__':
     filename = './data/under_sample_data.csv'
