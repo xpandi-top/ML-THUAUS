@@ -5,7 +5,7 @@
 3. 评价函数，accuracy， recall， AUC 
 
 
-## 数据概览-可视化 overall_data.py ![](https://img.shields.io/badge/status-incompelete-yellow.svg)
+## 数据概览-可视化 overall_data.py ![](https://img.shields.io/badge/status-compelete-green.svg)
 1. 数据的类型： 类别， 日期， 数值，ID
 2. 数据的分布：每个特征下的数据分布
 3. 数据之间的关系：correlation
