@@ -28,13 +28,13 @@
 
 
 ## 模型选择 *_model.py( 包括grid search)![](https://img.shields.io/badge/status-incompelete-yellow.svg)
-1. Xgboost
-2. Random Forest
-3. Ada
-4. Et
-5. Svc
-6. rf
-7. Light gbm
+- [x] Xgboost
+- [x] Random Forest
+- [ ] Ada
+- [ ] Et
+- [ ] Svc
+- [ ] rf
+- [ ] Light gbm
 
 ### 针对不均匀样本的：unbalanced_model.py ![](https://img.shields.io/badge/status-empty-red.svg)
 1. Svm-one class
