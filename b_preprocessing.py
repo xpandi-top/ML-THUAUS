@@ -11,6 +11,9 @@
 """
 # preprocess data
 import pandas as pd
+import numpy as np
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
@@ -100,13 +103,41 @@ def split_save(df, random_seed=10, size=0.3, name=''):
 
 
 def pipeline_and_gv(x_train, y_train):
-    pipeline = Pipeline(steps=[('minmax', MinMaxScaler()), ('logistic', LogisticRegression())], memory='memory')
+    pipeline = Pipeline(steps=[
+        # ('minmax', MinMaxScaler()),  # each tuple here defines a step in pipeline
+        ('logistic', LogisticRegression())
+    ], memory='memory')
     params = {
         'logistic__C': [0.5, 1]
     }
     gv = GridSearchCV(pipeline, params, cv=3)
     gv.fit(x_train, y_train)
     return gv.best_params_
+
+
+def pipeline4column(x_train, y_train):
+    features_1 = ['V1']
+    transformer_1 = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='median')),
+        ('scaler', StandardScaler())])
+
+    features_2 = ['V2', 'V3']
+    transformer_2 = MinMaxScaler()
+
+    colTrans = ColumnTransformer(
+        transformers=[
+            ('use_pipeline', transformer_1, features_1),
+            ('or_single_transformer', transformer_2, features_2)])
+
+    print(colTrans.fit_transform(x_train, y_train).shape)  # colTrans can be chained in pipeline or not
+
+    pipeline = Pipeline(steps=[
+        ('colTrans', colTrans),  # each tuple here defines a step in pipeline
+        ('logistic', LogisticRegression())]
+        # , memory='memory'
+    )
+    pipeline.fit(x_train, y_train)
+    return pipeline.score(x_train, y_train)
 
 
 # this is a process for specific columns
@@ -124,7 +155,8 @@ if __name__ == '__main__':
     # data.columns.tolist()
     # load_data.columns.tolist()
     df_train, df_test = split_save(load_data)
-    df = df_train
+    # df = df_train
 
-    for key in params:
-        params[key][0](df, params[key][1])
+    x_train, y_train = df_train.loc[:, df_train.columns != 'Class'], df_train.loc[:, 'Class']
+    y_train = pd.DataFrame(np.array(y_train).reshape(-1, 1))
+    print(pipeline4column(x_train, y_train))
