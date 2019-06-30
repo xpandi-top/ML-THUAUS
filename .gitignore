@@ -7,3 +7,5 @@ submit/*
 __pychche__/*
 pic/*
 memory/*
+plot_comparison_under_sampling.py
+pyenv/*
