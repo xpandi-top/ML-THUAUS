@@ -20,7 +20,8 @@
 1. 降维， PCA， LDA, sklearn feature_selection
 2. 特征生成，比如log， ➗， ➕，✖️
 
-## 拆分测试集与训练集-preprocessing.py
+## 拆分测试集与训练集- preprocessing.py
+sklearn split 
 ### 样本不均匀情况处理
 1. Under sample
 2. Up sample

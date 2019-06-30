@@ -12,6 +12,9 @@
 # preprocess data
 import pandas as pd
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
 
 
 def process_nan_data(df):
@@ -32,7 +35,7 @@ def min_max_scale_data(df, min_max_names=['Time'], replace=False):
     """
     min_max_label = 'min_max_scale_' if replace is not True else ''
     for name in min_max_names:
-        df[min_max_label + name] = MinMaxScaler().fit_transform(df[name].values.reshape(-1, 1))
+        df.loc[:, min_max_label + name] = MinMaxScaler().fit_transform(df[name].values.reshape(-1, 1))
         print(min_max_label + name)
     print('===' * 4, 'min max scale finished')
     return df
@@ -41,7 +44,7 @@ def min_max_scale_data(df, min_max_names=['Time'], replace=False):
 def std_scale_data(df, std_names=['Amount'], replace=False):
     std_label = 'std_scale_' if replace is not True else ''
     for name in std_names:
-        df[std_label + name] = StandardScaler().fit_transform(df[name].values.reshape(-1, 1))
+        df.loc[:, std_label + name] = StandardScaler().fit_transform(df[name].values.reshape(-1, 1))
         print(std_label + name)
     print('===' * 4, 'standard scale finished')
     return df
@@ -96,9 +99,20 @@ def split_save(df, random_seed=10, size=0.3, name=''):
     return df_train, df_test
 
 
+def pipeline_and_gv(x_train, y_train):
+    pipeline = Pipeline(steps=[('minmax', MinMaxScaler()), ('logistic', LogisticRegression())], memory='memory')
+    params = {
+        'logistic__C': [0.5, 1]
+    }
+    gv = GridSearchCV(pipeline, params, cv=3)
+    gv.fit(x_train, y_train)
+    return gv.best_params_
+
+
+# this is a process for specific columns
 params = {
-    'min_max_scale_columns': (scale_data, ['TIme'])
-    , 'std_scale_columns': ['Amount']
+    'min_max_scale_columns': (min_max_scale_data, ['Time'])
+    , 'std_scale_columns': (std_scale_data, ['Amount'])
     # 'one_hot_columns' : []
 }
 
@@ -106,8 +120,11 @@ if __name__ == '__main__':
     filename = './data/under_sample_data.csv'
     load_data = pd.read_csv(filename)
     # feature_names = load_data.columns.tolist()
-
     # data = scale_data(load_data)
     # data.columns.tolist()
     # load_data.columns.tolist()
     df_train, df_test = split_save(load_data)
+    df = df_train
+
+    for key in params:
+        params[key][0](df, params[key][1])
