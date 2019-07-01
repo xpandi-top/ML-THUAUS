@@ -14,8 +14,10 @@ from collections import Counter
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.compose import ColumnTransformer
 from sklearn.datasets import make_classification
+from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
@@ -121,7 +123,7 @@ def under_sample(X, y, sampler="RandomUnderSampler"):
     return X_resampled, y_resampled
 
 
-def up_sample(X, y, sampler="RandomUnderSampler"):
+def over_sample(X, y, sampler="RandomUnderSampler"):
     samplers = {
         "RandomOverSampler": RandomOverSampler(),
         "KMeansSMOTE": KMeansSMOTE(),
@@ -129,7 +131,7 @@ def up_sample(X, y, sampler="RandomUnderSampler"):
         "SMOTE": SMOTE(),
         "BorderlineSMOTE": BorderlineSMOTE(),
         "SVMSMOTE": SVMSMOTE(),
-        "SMOTENC": SMOTENC(),
+        "SMOTENC": SMOTENC(categorical_features=[]),
     }
     sampler = samplers[sampler]
 
@@ -147,7 +149,21 @@ def up_sample(X, y, sampler="RandomUnderSampler"):
 
 
 def smote_sample(X, y):
-    return up_sample(X, y, sampler="Smote")
+    return over_sample(X, y, sampler="SMOTE")
+
+
+def pca_plot(x, y):
+    pca = PCA(n_components=2)
+    x_reduced = pca.fit_transform(x, y)
+    classes = set(list(y))
+    colors = ['red', 'blue', 'green', 'grey', 'cyon']
+    for i, c in enumerate(classes):
+        plt.scatter(x_reduced[np.where(y == c), 0], x_reduced[np.where(y == c), 1],
+                    label='class %s' % c,
+                    c=colors[i],
+                    alpha=0.5)
+    plt.legend()
+    plt.show()
 
 
 def split_save(df, random_seed=10, size=0.3, name=''):
@@ -213,9 +229,9 @@ params = {
 }
 
 
-def create_imbalance_dataset(n_samples=1000, weights=(0.01, 0.01, 0.98), n_classes=3,
-                             class_sep=0.8, n_clusters=1):
-    return make_classification(n_samples=n_samples, n_features=2,
+def create_imbalance_dataset(n_samples=1000, weights=(0.02, 0.98), n_classes=2,
+                             class_sep=0.8, n_clusters=1, n_features=2):
+    return make_classification(n_samples=n_samples, n_features=n_features,
                                n_informative=2, n_redundant=0, n_repeated=0,
                                n_classes=n_classes,
                                n_clusters_per_class=n_clusters,
@@ -236,6 +252,8 @@ if __name__ == '__main__':
     # x_train, y_train = df_train.loc[:, df_train.columns != 'Class'], df_train.loc[:, 'Class']
     # y_train = pd.DataFrame(np.array(y_train).reshape(-1, 1))
     # # print(pipeline4column(x_train, y_train))
-    X, y = create_imbalance_dataset(n_samples=5000, weights=(0.01, 0.05, 0.94),
-                                    class_sep=0.8)
-    under_sample(X, y)
+    # X, y = create_imbalance_dataset(n_samples=1000, class_sep=0.8, n_features=30)
+    X, y = create_imbalance_dataset(n_samples=1000, class_sep=0.8, n_features=30, n_classes=3, weights=(0.01, 0.05, 0.94))
+    pca_plot(X, y)
+    x_resample, y_resample = smote_sample(X, y)
+    pca_plot(x_resample, y_resample)
