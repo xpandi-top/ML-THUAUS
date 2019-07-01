@@ -143,7 +143,7 @@ svc_params = {
     'C': 0.025
 }
 
-# Create 5 objects that represent our 4 models
+# Create 5 objects that represent our 5 models
 rf = SklearnHelper(clf=RandomForestClassifier, seed=SEED, params=rf_params)
 et = SklearnHelper(clf=ExtraTreesClassifier, seed=SEED, params=et_params)
 ada = SklearnHelper(clf=AdaBoostClassifier, seed=SEED, params=ada_params)

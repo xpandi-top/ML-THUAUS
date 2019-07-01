@@ -74,7 +74,7 @@ def std_scale_data(df, std_names=['Amount'], replace=False):
     return df
 
 
-# todo one hot encoding
+# todo: unfininshed
 def one_hot_data(df, column_names, categories, replace=False):
     print("===" * 4, 'transforming to one hot encoding', "===" * 4)
     one_hot_label = 'one_hot_' if replace is not True else ''
@@ -224,18 +224,20 @@ def create_imbalance_dataset(n_samples=1000, weights=(0.01, 0.01, 0.98), n_class
 
 
 if __name__ == '__main__':
-    # filename = './data/under_sample_data.csv'
-    # load_data = pd.read_csv(filename)
-    # df_train, df_test = split_save(load_data)
+    filename = './data/under_sample_data.csv'
+    load_data = pd.read_csv(filename)
+    df_train, df_test = split_save(load_data)
     # # feature_names = load_data.columns.tolist()
     # # data = scale_data(load_data)
     # # data.columns.tolist()
     # # load_data.columns.tolist()
     # # df = df_train
 
-    # x_train, y_train = df_train.loc[:, df_train.columns != 'Class'], df_train.loc[:, 'Class']
+    x_train, y_train = df_train.loc[:, df_train.columns != 'Class'], df_train.loc[:, 'Class']
+    x, y = under_sample(x_train, y_train)
+    print(x.shape, y.shape)
     # y_train = pd.DataFrame(np.array(y_train).reshape(-1, 1))
     # print(pipeline4column(x_train, y_train))
-    X, y = create_imbalance_dataset(n_samples=5000, weights=(0.01, 0.05, 0.94),
-                                    class_sep=0.8)
-    under_sample(X, y)
+    # X, y = create_imbalance_dataset(n_samples=5000, weights=(0.01, 0.05, 0.94),
+    #                                 class_sep=0.8)
+    # under_sample(X, y)
