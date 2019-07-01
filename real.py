@@ -47,44 +47,58 @@ def load_data(file):
     return _data
 
 
-train_data = load_data("data/small_train.csv")
+def get_dict_detail(dict, keys_ordered, home_ordered):
+    result = []
+    for key in keys_ordered:
+        result.append(dict.get(key, None))
+        if key == "home" and dict.get("home", None) is not None:
+            for h in home_ordered:
+                result.append(dict["home"][h])
+        else:
+            result.append([None] * 4)
+    return result
 
-groups = train_data.groupby("customer")
-customer_rows = []
-all_statuses = ['Quote Started', 'Quote Completed', 'Payment Completed', 'Claim Started', 'Claim Accepted',
-                'Policy Cancelled', 'Quote Incompl', 'Claim Denied']
-for customer, group in groups:
-    row = [0] * (2 * len(all_statuses)) + [customer]
-    row.append(0)
-    row.append(0)
-    for idx in group.index:
-        row[all_statuses.index(group.loc[idx, "status"]) * 2] = group.loc[idx, "time"]
-        row[all_statuses.index(group.loc[idx, "status"]) * 2 + 1] = group.loc[idx, "browser"]
-        if isinstance(group.loc[idx, "finalDict"], dict):
-            row[-1] = group.loc[idx, "finalDict"]
-        elif group.loc[idx, "finalDict"] == "fraud":
-            row[-2] = 1
-        elif not group.loc[idx, "finalDict"].startswith("None") or group.loc[idx, "finalDict"] is None:
-            print(group.loc[idx, "finalDict"])
-    if row[-1]:
-        row.extend(list(row[-1].values()))
+
+def convert_data():
+    _groups = train_data.groupby("customer")
+    _customer_rows = []
+    _all_statuses = ['Quote Started', 'Quote Completed', 'Payment Completed', 'Claim Started', 'Claim Accepted',
+                     'Policy Cancelled', 'Quote Incompl', 'Claim Denied']
+    keys_ordered = ['gender', 'name', 'household', 'age', 'address', 'email', 'home']
+    home_ordered = ['square_footage', 'number_of_floors', 'type', 'number_of_bedrooms']
+    for customer, group in _groups:
+        row = [0] * (2 * len(_all_statuses)) + [customer]
+        row.append(0)
+        row.append(0)
+        for idx in group.index:
+            row[_all_statuses.index(group.loc[idx, "status"]) * 2] = group.loc[idx, "time"]
+            row[_all_statuses.index(group.loc[idx, "status"]) * 2 + 1] = group.loc[idx, "browser"]
+            if isinstance(group.loc[idx, "finalDict"], dict):
+                row[-1] = group.loc[idx, "finalDict"]
+            elif group.loc[idx, "finalDict"] == "fraud":
+                row[-2] = 1
+            elif not group.loc[idx, "finalDict"].startswith("None") or group.loc[idx, "finalDict"] is None:
+                print(group.loc[idx, "finalDict"])
         if row[-1]:
-            row.extend(list(row[-1].values()))
-    customer_rows.append(row)
+            row.extend(get_dict_detail(row[-1], keys_ordered, home_ordered))
+        _customer_rows.append(row)
 
-all_columns = ['Quote Started_time', 'Quote Started_platform',
-               'Quote Completed_time', 'Quote Completed_platform',
-               'Payment Completed_time', 'Payment Completed_platform',
-               'Claim Started_time', 'Claim Started_platform',
-               'Claim Accepted_time', 'Claim Accepted_platform',
-               'Policy Cancelled_time', 'Policy Cancelled_platform',
-               'Quote Incompl', 'Quote Incompl_platform',
-               'Claim Denied_time', 'Claim Denied_platform',
-               'id', 'isFraud', 'detail'
-               ]
-all_columns.extend(['gender', 'name', 'household', 'age', 'address', 'email', 'home', 'square_footage', 'number_of_floors', 'type', 'number_of_bedrooms'])
-converted = pd.DataFrame(customer_rows, columns=all_columns)
-converted.columns = all_columns
+    _all_columns = ['Quote Started_time', 'Quote Started_platform',
+                    'Quote Completed_time', 'Quote Completed_platform',
+                    'Payment Completed_time', 'Payment Completed_platform',
+                    'Claim Started_time', 'Claim Started_platform',
+                    'Claim Accepted_time', 'Claim Accepted_platform',
+                    'Policy Cancelled_time', 'Policy Cancelled_platform',
+                    'Quote Incompl', 'Quote Incompl_platform',
+                    'Claim Denied_time', 'Claim Denied_platform',
+                    'id', 'isFraud', 'detail'
+                    ]
+    _all_columns.extend(keys_ordered)
+    _all_columns.extend(home_ordered)
+    return pd.DataFrame(_customer_rows, columns=_all_columns)
+    # todo: deal with house holds
+
+
+train_data = load_data("data/small_train.csv")
+converted = convert_data()
 print(converted.shape)
-
-#todo: deal with house holds
