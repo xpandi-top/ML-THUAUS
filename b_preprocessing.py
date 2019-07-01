@@ -257,3 +257,7 @@ if __name__ == '__main__':
     pca_plot(X, y)
     x_resample, y_resample = smote_sample(X, y)
     pca_plot(x_resample, y_resample)
+    # print(pipeline4column(x_train, y_train))
+    X, y = create_imbalance_dataset(n_samples=5000, weights=(0.01, 0.05, 0.94),
+                                    class_sep=0.8)
+    under_sample(X, y)
