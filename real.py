@@ -47,14 +47,14 @@ def load_data(file):
     return _data
 
 
-def get_dict_detail(dict, keys_ordered, home_ordered):
+def get_dict_detail(customer_dict, keys_ordered, home_ordered):
     result = []
     for key in keys_ordered:
-        result.append(dict.get(key, None))
-        if key == "home" and dict.get("home", None) is not None:
+        result.append(customer_dict.get(key, None))
+        if key == "home" and isinstance(customer_dict.get("home", None), dict):
             for h in home_ordered:
-                result.append(dict["home"][h])
-        else:
+                result.append(customer_dict["home"].get(h, None))
+        elif key == "home" :
             result.append([None] * 4)
     return result
 
@@ -81,6 +81,8 @@ def convert_data():
                 print(group.loc[idx, "finalDict"])
         if row[-1]:
             row.extend(get_dict_detail(row[-1], keys_ordered, home_ordered))
+        else:
+            row.extend([None] * 11)
         _customer_rows.append(row)
 
     _all_columns = ['Quote Started_time', 'Quote Started_platform',
