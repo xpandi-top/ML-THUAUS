@@ -196,7 +196,7 @@ def time_numeric(converted):
 def get_household_num(converted, other_features):
     def get_len(arr):
         if arr[other_features] is not np.nan:
-            return len(arr[other_features])
+            return len(json.loads(arr[other_features].replace("\'", "\"")))
         return None
 
     converted['num_household'] = converted.apply(get_len, axis=1)
@@ -275,6 +275,13 @@ def over_sample(X, y, sampler="SMOTE"):
     return X_resampled, y_resampled
 
 
+def new_trans(data):
+    data['root_area'] = data.apply(lambda x: x['square_footage'] ** 0.5, axis=1)
+    data.drop('square_footage', axis=1)
+
+    return data
+
+
 def transform_converted(_train_converted, _test_converted):
     # define features
     categorical_features = ['Quote Started_platform', 'Quote Completed_platform', 'Payment Completed_platform',
@@ -310,11 +317,6 @@ def transform_converted(_train_converted, _test_converted):
                                      std_names=['quote_time', 'payment_time', 'cancelled_time', 'claim_time',
                                                 'accepted_time', 'denied_time'],
                                      replace=True)
-    _test_converted = _test_converted.drop(categorical_features, axis=1)
-    _test_converted = _test_converted.drop(time_features, axis=1)
-    _test_converted = _test_converted.drop(str_features, axis=1)
-    _test_converted = _test_converted.drop('household', axis=1)
-    _test_converted = _test_converted.drop(numeric_features, axis=1)
 
     _train_converted = transform_time_features(_train_converted, time_features)
     _train_converted = time_numeric(_train_converted)
@@ -325,13 +327,24 @@ def transform_converted(_train_converted, _test_converted):
                                       std_names=['quote_time', 'payment_time', 'cancelled_time', 'claim_time',
                                                  'accepted_time', 'denied_time'],
                                       replace=True)
+    
+##########
+    _train_converted = new_trans(_train_converted)
+    _test_converted = new_trans(_test_converted)
+############
+
+    _test_converted = _test_converted.drop(categorical_features, axis=1)
+    _test_converted = _test_converted.drop(time_features, axis=1)
+    _test_converted = _test_converted.drop(str_features, axis=1)
+    _test_converted = _test_converted.drop('household', axis=1)
+    _test_converted = _test_converted.drop(numeric_features, axis=1)
 
     _train_converted = _train_converted.drop(categorical_features, axis=1)
     _train_converted = _train_converted.drop(time_features, axis=1)
     _train_converted = _train_converted.drop(str_features, axis=1)
     _train_converted = _train_converted.drop('household', axis=1)
     _train_converted = _train_converted.drop(numeric_features, axis=1)
-    print(_test_converted.columns)
+
 
     _test_converted = _test_converted.drop(['accepted_time', 'denied_time',
                                             'Quote Started_platform_mobile_app',
@@ -364,7 +377,50 @@ def transform_converted(_train_converted, _test_converted):
 
 train_data, test_data, submission = load_saved_data()
 
-train_converted, test_converted = transform_converted(train_data, test_data)
+train_paid, test_converted = transform_converted(train_data[train_data['amount'] > 0], test_data)
+x_paid, y_paid = train_paid.drop(["id", "amount"], axis=1), train_paid["amount"]
+x_train_paid, x_test_paid, y_train_paid, y_test_paid = train_test_split(x_paid, y_paid, test_size=0.3,
+                                                                        random_state=42)
+
+default_params = {'learning_rate':    0.1,
+                  'n_estimators':     90,
+                  'max_depth':        4,
+                  'min_child_weight': 4,
+                  'subsample':        0.8,
+                  'colsample_bytree': 0.8,
+                  'gamma':            0,
+                  'seed':             42,
+                  'n_jobs':           6,
+                  'eta': 0.05,
+                  'num_boost_round': 100
+                  }
+xgb = xgboost.XGBRegressor(**default_params)
+xgb.fit(x_train_paid, y_train_paid)
+y_pred_paid = xgb.predict(x_test_paid)
+print(mean_squared_error(y_pred_paid, y_test_paid) ** 0.5)
+
+# params = {
+#     # 'gamma':            [0, 0.1],
+#     # 'subsample':        [0.6, 0.8, 0.7],
+#     # 'colsample_bytree': [0.6, 0.8, 1.0],
+#     # 'num_boost_round': [100, 250, 500],
+#     # 'eta':             [0.05, 0.1, 0.2],
+#     # 'learning_rate':   [0.05, 0.1, 0.2],
+#     # 'max_depth':        [3, 4, 5],
+#     # 'min_child_weight': [3, 4, 5, 6, 7],
+#     # 'n_estimators':     [70, 80, 90, 100, 110, 120, 130]
+# }
+# gv = GridSearchCV(xgb, params, cv=3, scoring='neg_mean_squared_error', verbose=True, n_jobs=1)
+# gv.fit(x_train_paid, y_train_paid)
+# print(gv.best_params_)
+
+
+# y_pred_test = xgb.predict(test_converted.drop(['id', 'amount'], axis=1))
+# my_submission = test_converted.loc[:, ['id', 'amount']]
+# my_submission.columns = ['customer_id', 'claim_amount']
+# my_submission["claim_amount"] = y_pred_test
+# my_submission.to_csv('data/first_sb.csv', index=None)
+
 
 # x_all, y_all = train_converted.drop(["id", "amount"], axis=1), train_converted["amount"]
 # test_all = test_converted.drop(["id", "amount"], axis=1)
@@ -389,46 +445,3 @@ train_converted, test_converted = transform_converted(train_data, test_data)
 # print(accuracy_score(y_test_all, y_pred_all))
 # print(recall_score(y_test_all, y_pred_all))
 # print(f1_score(y_test_all, y_pred_all))
-
-train_paid = train_converted[train_converted['amount'] > 0]
-x_paid, y_paid = train_paid.drop(["id", "amount"], axis=1), train_paid["amount"]
-x_train_paid, x_test_paid, y_train_paid, y_test_paid = train_test_split(x_paid, y_paid, test_size=0.3,
-                                                                        random_state=42)
-
-default_params = {'learning_rate':    0.1,
-                  'n_estimators':     90,
-                  'max_depth':        4,
-                  'min_child_weight': 4,
-                  'subsample':        0.8,
-                  'colsample_bytree': 0.8,
-                  'gamma':            0,
-                  'seed':             42,
-                  'n_jobs':           6,
-                  'eta': 0.05,
-                  'num_boost_round': 100
-                  }
-xgb = xgboost.XGBRegressor(**default_params)
-
-params = {
-    # 'gamma':            [0, 0.1],
-    # 'subsample':        [0.6, 0.8, 0.7],
-    # 'colsample_bytree': [0.6, 0.8, 1.0],
-    # 'num_boost_round': [100, 250, 500],
-    # 'eta':             [0.05, 0.1, 0.2],
-    # 'learning_rate':   [0.05, 0.1, 0.2],
-    # 'max_depth':        [3, 4, 5],
-    # 'min_child_weight': [3, 4, 5, 6, 7],
-    # 'n_estimators':     [70, 80, 90, 100, 110, 120, 130]
-}
-gv = GridSearchCV(xgb, params, cv=3, scoring='neg_mean_squared_error', verbose=True, n_jobs=1)
-gv.fit(x_train_paid, y_train_paid)
-print(gv.best_params_)
-
-y_pred_paid = xgb.predict(x_test_paid)
-print(mean_squared_error(y_pred_paid, y_test_paid) ** 0.5)
-
-y_pred_test = xgb.predict(test_converted.drop(['id', 'amount'], axis=1))
-my_submission = test_converted.loc[:, ['id', 'amount']]
-my_submission.columns = ['customer_id', 'claim_amount']
-my_submission["claim_amount"] = y_pred_test
-my_submission.to_csv('data/first_sb.csv', index=None)
