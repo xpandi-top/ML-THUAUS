@@ -16,6 +16,7 @@ from collections import Counter
 import xgboost
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import LabelEncoder
 
 
 def json_load(arr):
@@ -276,6 +277,31 @@ def over_sample(X, y, sampler="SMOTE"):
     return X_resampled, y_resampled
 
 
+def add_address(str_list):
+    s = ''
+    for i in range(len(str_list)):
+        s = s + str_list[i]
+    return s
+
+
+def encode_address(train_data):
+    # add the street name
+    address_list = list(train_data['address'])
+    address_list_1 = [x.split(',')[0] for x in address_list]
+    address_list_1 = [add_address(x.split()[1:]) for x in address_list_1]
+    address_list_2 = [x.split(',')[1] for x in address_list]
+    address_list_2 = [add_address(x.split()) for x in address_list_2]
+
+    enc_address_1 = LabelEncoder().fit(address_list_1)
+    encoded_address_1 = enc_address_1.transform(address_list_1)
+    enc_address_2 = LabelEncoder().fit(address_list_2)
+    encoded_address_2 = enc_address_2.transform(address_list_2)
+
+    train_data['address_part_1_encoded'] = encoded_address_1
+    train_data['address_part_2_encoded'] = encoded_address_2
+    return train_data
+
+
 def new_trans(data):
     data['root_area'] = data.apply(lambda x: x['square_footage'] ** 0.5, axis=1)
     data['data_time'] = data['Payment Completed_time'].apply(lambda x: datetime.datetime.fromtimestamp(x) if x >0 else datetime.datetime.fromtimestamp(0))
@@ -283,7 +309,11 @@ def new_trans(data):
     data['year'] = pd.DatetimeIndex(data['data_time']).year
 
     data = data.drop(['data_time'], axis=1)
+
+    data = encode_address(data)
+    
     return data
+
 
 
 def transform_converted(_train_converted, _test_converted):
