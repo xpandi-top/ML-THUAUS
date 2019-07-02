@@ -13,39 +13,42 @@ import plotly.offline as py
 import plotly.graph_objs as go
 import plotly.tools as tls
 
-from c_xgb_model import plot_confusion_matrix
+# from c_xgb_model import plot_confusion_matrix
 
 import warnings
+
 warnings.filterwarnings('ignore')
 
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, \
-    ExtraTreesClassifier
-from sklearn.svm import SVC
+# from sklearn.ensemble import RandomForestC lassifier, AdaBoostClassifier, GradientBoostingClassifier, \
+#     ExtraTreesClassifier
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor, ExtraTreesRegressor
+
+from sklearn.svm import SVR
 from sklearn.model_selection import KFold
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix
-
-filename = './data/under_sample_data.csv'
-data = pd.read_csv(filename)
-under_sample_x = data.iloc[:, data.columns != 'Class']
-under_sample_x = under_sample_x.drop(['Time'], axis=1)
-under_sample_y = data.iloc[:, data.columns == 'Class']
-X_train, X_test, y_train, y_test = train_test_split(under_sample_x, under_sample_y, test_size=0.3, random_state=10)
-
+# from sklearn.metrics import confusion_matrix
+from sklearn.metrics import mean_squared_error
+filename = './data/x_paid.csv'
+labelfile = './data/y_paid.csv'
+x_paid = pd.read_csv(filename, index_col=None)
+y_paid = pd.read_csv(labelfile, header=None)
+# X_train, X_test, y_train, y_test = train_test_split(under_sample_x, under_sample_y, test_size=0.3, random_state=10)
+x_train_paid, x_test_paid, y_train_paid, y_test_paid = train_test_split(x_paid, y_paid.values.ravel(), test_size=0.3,
+                                                                        random_state=42)
 # Pearson Correlation Heatmap use seabone, showing the relationships between features
 
-colormap = plt.cm.RdBu
-plt.figure(figsize=(14, 12))
-plt.title('Pearson Correlation of Features', y=1.05, size=15)
-sns.heatmap(X_train.astype(float).corr(), linewidths=0.1, vmax=1.0,
-            square=True, cmap=colormap, linecolor='white', annot=True)
-plt.show()
+# colormap = plt.cm.RdBu
+# plt.figure(figsize=(14, 12))
+# plt.title('Pearson Correlation of Features', y=1.05, size=15)
+# sns.heatmap(X_train.astype(float).corr(), linewidths=0.1, vmax=1.0,
+#             square=True, cmap=colormap, linecolor='white', annot=True)
+# plt.show()
 
 ### Helpers via Python Classes
-ntrain = X_train.shape[0]
-ntest = X_test.shape[0]
+ntrain = x_train_paid.shape[0]
+ntest = x_test_paid.shape[0]
 SEED = 0  # for reproducibility
-NFOLDS = 5  # set folds for out-of-fold prediction
+NFOLDS = 3  # set folds for out-of-fold prediction
 kf = KFold(n_splits=NFOLDS, random_state=SEED)
 
 
@@ -56,7 +59,7 @@ class SklearnHelper(object):
     """
 
     def __init__(self, clf, seed=0, params=None):
-        params['random_state'] = seed
+        # params['random_state'] = seed
         self.clf = clf(**params)
 
     def train(self, x_train, y_train):
@@ -85,7 +88,7 @@ def get_oof(clf, x_train, y_train, x_test):
     oof_test = np.zeros((ntest,))
     oof_test_skf = np.empty((NFOLDS, ntest))
 
-    for i, (train_index, test_index) in enumerate(kf.split(X_train)):
+    for i, (train_index, test_index) in enumerate(kf.split(x_train)):
         x_tr = x_train[train_index]
         y_tr = y_train[train_index]
         x_te = x_train[test_index]
@@ -144,16 +147,22 @@ svc_params = {
 }
 
 # Create 5 objects that represent our 5 models
-rf = SklearnHelper(clf=RandomForestClassifier, seed=SEED, params=rf_params)
-et = SklearnHelper(clf=ExtraTreesClassifier, seed=SEED, params=et_params)
-ada = SklearnHelper(clf=AdaBoostClassifier, seed=SEED, params=ada_params)
-gb = SklearnHelper(clf=GradientBoostingClassifier, seed=SEED, params=gb_params)
-svc = SklearnHelper(clf=SVC, seed=SEED, params=svc_params)
+rf = SklearnHelper(clf=RandomForestRegressor, seed=SEED, params=rf_params)
+et = SklearnHelper(clf=ExtraTreesRegressor, seed=SEED, params=et_params)
+ada = SklearnHelper(clf=AdaBoostRegressor, seed=SEED, params=ada_params)
+gb = SklearnHelper(clf=GradientBoostingRegressor, seed=SEED, params=gb_params)
+svc = SklearnHelper(clf=SVR, seed=SEED, params=svc_params)
 
-x_train = X_train.values  # Creates an array of the train data
-x_test = X_test.values  # Creats an array of the test data
-y_train = y_train.values.ravel()
-y_test = y_test.values.ravel()
+# rf = SklearnHelper(clf=RandomForestClassifier, seed=SEED, params=rf_params)
+# et = SklearnHelper(clf=ExtraTreesClassifier, seed=SEED, params=et_params)
+# ada = SklearnHelper(clf=AdaBoostClassifier, seed=SEED, params=ada_params)
+# gb = SklearnHelper(clf=GradientBoostingClassifier, seed=SEED, params=gb_params)
+# svc = SklearnHelper(clf=SVC, seed=SEED, params=svc_params)
+
+x_train = x_train_paid.values  # Creates an array of the train data
+x_test = x_test_paid.values  # Creats an array of the test data
+y_train = y_train_paid
+y_test = y_test_paid
 
 # Create our OOF train and test predictions. These base results will be used as new features
 et_oof_train, et_oof_test = get_oof(et, x_train, y_train, x_test)  # Extra Trees
@@ -174,7 +183,7 @@ et_features = et.clf.feature_importances_
 ada_features = ada.clf.feature_importances_
 gb_features = gb.clf.feature_importances_
 
-cols = X_train.columns.values
+cols = x_train_paid.columns.values
 # Create a dataframe with features
 feature_dataframe = pd.DataFrame({'features': cols,
                                   'Random Forest feature importances': rf_features,
@@ -184,7 +193,7 @@ feature_dataframe = pd.DataFrame({'features': cols,
                                   })
 
 feature_dataframe['mean'] = feature_dataframe.mean(axis=1)  # axis = 1 computes the mean row-wise
-feature_dataframe.head(3)
+# feature_dataframe.head(3)
 
 ###########
 ## Second-Level Predictions from the First-level Output
@@ -210,25 +219,27 @@ py.iplot(data, filename='labelled-heatmap')
 x_train = np.concatenate((et_oof_train, rf_oof_train, ada_oof_train, gb_oof_train, svc_oof_train), axis=1)
 x_test = np.concatenate((et_oof_test, rf_oof_test, ada_oof_test, gb_oof_test, svc_oof_test), axis=1)
 
-gbm = xgb.XGBClassifier(
-    # learning_rate = 0.02,
-    n_estimators=2000,
-    max_depth=4,
-    min_child_weight=2,
-    # gamma=1,
-    gamma=0.9,
-    subsample=0.8,
-    colsample_bytree=0.8,
-    objective='binary:logistic',
-    nthread=-1,
-    scale_pos_weight=1).fit(x_train, y_train)
+default_params = {'learning_rate':    0.1,
+                  'n_estimators':     90,
+                  'max_depth':        4,
+                  'min_child_weight': 4,
+                  'subsample':        0.8,
+                  'colsample_bytree': 0.8,
+                  'gamma':            0,
+                  'seed':             42,
+                  'n_jobs':           2,
+                  'eta': 0.05,
+                  'num_boost_round': 100
+                  }
+gbm = xgb.XGBRegressor(**default_params).fit(x_train, y_train)
 predictions = gbm.predict(x_test)
 
-confusion_matrix(y_test, predictions)
-plot_confusion_matrix(confusion_matrix(y_test, predictions), [0, 1], 'ensemble model')
+print(mean_squared_error(y_test_paid,predictions)**0.5)
+# confusion_matrix(y_test, predictions)
+# plot_confusion_matrix(confusion_matrix(y_test, predictions), [0, 1], 'ensemble model')
 
 # submit file
 # Generate Submission File
-StackingSubmission = pd.DataFrame({'PassengerId': X_test.index.tolist(),
+StackingSubmission = pd.DataFrame({'PassengerId': x_test_paid['amount'],
                                    'Class': predictions})
 StackingSubmission.to_csv("./StackingSubmission.csv", index=False)

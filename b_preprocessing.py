@@ -240,29 +240,13 @@ def create_imbalance_dataset(n_samples=1000, weights=(0.02, 0.98), n_classes=2,
 
 
 if __name__ == '__main__':
-    filename = './data/under_sample_data.csv'
-    load_data = pd.read_csv(filename)
-    df_train, df_test = split_save(load_data)
-    # # feature_names = load_data.columns.tolist()
-    # # data = scale_data(load_data)
-    # # data.columns.tolist()
-    # # load_data.columns.tolist()
-    # # df = df_train
+    trainfile = './data/train_converted.csv'
+    testfile = './data/test_converted.csv'
+    train = pd.read_csv(trainfile, index_col=0)
+    test = pd.read_csv(testfile, index_col=0)
 
-    x_train, y_train = df_train.loc[:, df_train.columns != 'Class'], df_train.loc[:, 'Class']
-    x, y = under_sample(x_train, y_train)
-    print(x.shape, y.shape)
-    # y_train = pd.DataFrame(np.array(y_train).reshape(-1, 1))
-    # # print(pipeline4column(x_train, y_train))
-    # X, y = create_imbalance_dataset(n_samples=1000, class_sep=0.8, n_features=30)
-    X, y = create_imbalance_dataset(n_samples=1000, class_sep=0.8, n_features=30, n_classes=3, weights=(0.01, 0.05, 0.94))
-    pca_plot(X, y)
-    x_resample, y_resample = smote_sample(X, y)
-    pca_plot(x_resample, y_resample)
-    # print(pipeline4column(x_train, y_train))
-    # X, y = create_imbalance_dataset(n_samples=5000, weights=(0.01, 0.05, 0.94),
-    #                                 class_sep=0.8)
-    # under_sample(X, y)
-    X, y = create_imbalance_dataset(n_samples=5000, weights=(0.01, 0.05, 0.94),
-                                    class_sep=0.8)
-    under_sample(X, y)
+    quote_completed = train['Quote Completed_time'].isna()
+    payment_completed = train['Payment Completed_platform'].isna()
+    claim_started = train['Claim Started_platform'].isna()
+    claim_accepted = ~train['amount'].isna()
+    n
