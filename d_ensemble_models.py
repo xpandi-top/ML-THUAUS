@@ -17,8 +17,7 @@ train_data, test_data, submission = load_saved_data()
 
 train_paid, test_converted = transform_converted(train_data[train_data['amount'] > 0], test_data)
 x_paid, y_paid = train_paid.drop(["id", "amount"], axis=1), train_paid["amount"]
-x_train_paid, x_test_paid, y_train_paid, y_test_paid = train_test_split(x_paid, y_paid.values.ravel(), test_size=0.3,
-                                                                        random_state=42)
+x_train_paid, x_test_paid, y_train_paid, y_test_paid = train_test_split(x_paid, y_paid.values.ravel(), test_size=0.3,random_state=42)
 
 x_test_paid = test_converted.drop(["id", "amount"], axis=1)
 # Pearson Correlation Heatmap use seabone, showing the relationships between features
