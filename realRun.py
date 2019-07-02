@@ -277,8 +277,11 @@ def over_sample(X, y, sampler="SMOTE"):
 
 def new_trans(data):
     data['root_area'] = data.apply(lambda x: x['square_footage'] ** 0.5, axis=1)
-    data.drop('square_footage', axis=1)
+    data['data_time'] = data['Payment Completed_time'].apply(lambda x: datetime.datetime.fromtimestamp(x) if x >0 else datetime.datetime.fromtimestamp(0))
+    # dtime = pd.Series([datetime.datetime.fromtimestamp(i) for i in data['Payment Completed_time']])
+    data['year'] = pd.DatetimeIndex(data['data_time']).year
 
+    data = data.drop(['data_time'], axis=1)
     return data
 
 
@@ -289,7 +292,7 @@ def transform_converted(_train_converted, _test_converted):
                             'Quote Incomplete_platform', 'Claim Denied_platform', 'reason', 'gender', 'type']
     time_features = ['Quote Started_time', 'Quote Completed_time', 'Payment Completed_time', 'Policy Cancelled_time',
                      'Claim Started_time', 'Claim Accepted_time', 'Claim Denied_time', 'Quote Incomplete']
-    numeric_features = ['age', 'square_footage', 'number_of_floors', 'number_of_bedrooms']
+    numeric_features = ['age', 'square_footage']
     str_features = ['name', 'address', 'email']
     # other_features = ['household']
     label = ['amount']
@@ -327,7 +330,7 @@ def transform_converted(_train_converted, _test_converted):
                                       std_names=['quote_time', 'payment_time', 'cancelled_time', 'claim_time',
                                                  'accepted_time', 'denied_time'],
                                       replace=True)
-    
+
 ##########
     _train_converted = new_trans(_train_converted)
     _test_converted = new_trans(_test_converted)
@@ -345,8 +348,9 @@ def transform_converted(_train_converted, _test_converted):
     _train_converted = _train_converted.drop('household', axis=1)
     _train_converted = _train_converted.drop(numeric_features, axis=1)
 
-
-    _test_converted = _test_converted.drop(['accepted_time', 'denied_time',
+    _test_converted = _test_converted.drop(['quote_time', 'payment_time', 'cancelled_time', 'claim_time',
+                                            'accepted_time', 'denied_time',
+                                            'std_scale_square_footage',
                                             'Quote Started_platform_mobile_app',
                                             'Quote Started_platform_mobile_browser',
                                             'Quote Started_platform_pc_browser',
@@ -415,11 +419,11 @@ print(mean_squared_error(y_pred_paid, y_test_paid) ** 0.5)
 # print(gv.best_params_)
 
 
-# y_pred_test = xgb.predict(test_converted.drop(['id', 'amount'], axis=1))
-# my_submission = test_converted.loc[:, ['id', 'amount']]
-# my_submission.columns = ['customer_id', 'claim_amount']
-# my_submission["claim_amount"] = y_pred_test
-# my_submission.to_csv('data/first_sb.csv', index=None)
+y_pred_test = xgb.predict(test_converted.drop(['id', 'amount'], axis=1))
+my_submission = test_converted.loc[:, ['id', 'amount']]
+my_submission.columns = ['customer_id', 'claim_amount']
+my_submission["claim_amount"] = y_pred_test
+my_submission.to_csv('data/year.csv', index=None)
 
 
 # x_all, y_all = train_converted.drop(["id", "amount"], axis=1), train_converted["amount"]
