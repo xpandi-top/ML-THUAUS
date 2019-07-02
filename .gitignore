@@ -9,4 +9,6 @@ pic/*
 memory/*
 plot_comparison_under_sampling.py
 pyenv/*
-.csv
+*.csv
+pystacknet/*
+>>>>>>> Stashed changes
