@@ -2,6 +2,8 @@ import pandas as pd
 import datetime
 import json
 
+filename = "data/train.csv"
+
 
 # customers_file = "data/sample_submission.csv"
 # data = pd.read_csv(customers_file, header=0, sep=",", index_col=None)
@@ -52,7 +54,8 @@ def load_data(file, header=True):
 
     _data = pd.concat([_data, _split_tmp], axis=1)
 
-    _data["status"], _data["customer"], _data["amount"], _data["reason"], _data["jsonstr"] = zip(*_data.apply(extract_info, axis=1))
+    _data["status"], _data["customer"], _data["amount"], _data["reason"], _data["jsonstr"] = zip(
+        *_data.apply(extract_info, axis=1))
     _data = _data.drop(["message", "timestamp", "info"], axis=1)
 
     _data["finalDict"] = _data.apply(json_load, axis=1)
@@ -72,7 +75,7 @@ def get_dict_detail(customer_dict, keys_ordered):
     return result
 
 
-def convert_data():
+def convert_data(train_data):
     _groups = train_data.groupby("customer")
     _customer_rows = []
     _all_statuses = ['Quote Started', 'Quote Completed', 'Payment Completed', 'Claim Started', 'Claim Accepted',
@@ -99,7 +102,7 @@ def convert_data():
             row[group.loc[idx, "status"] + "_time"] = group.loc[idx, "time"]
             row[group.loc[idx, "status"] + "_platform"] = group.loc[idx, "browser"]
             if _has_detail[_all_statuses.index(group.loc[idx, "status"])]:
-                row[_has_detail[_all_statuses.index(group.loc[idx, "status"])][0]] =\
+                row[_has_detail[_all_statuses.index(group.loc[idx, "status"])][0]] = \
                     group.loc[idx, _has_detail[_all_statuses.index(group.loc[idx, "status"])][0]]
             if isinstance(group.loc[idx, "finalDict"], dict):
                 _detail_dict = group.loc[idx, "finalDict"]
@@ -112,6 +115,6 @@ def convert_data():
     # todo: deal with house holds
 
 
-train_data = load_data("data/small_train.csv")
+train_data = load_data(filename)
 converted = convert_data()
 print(converted.shape)
