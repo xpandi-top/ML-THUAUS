@@ -91,7 +91,7 @@ def get_oof(clf, x_train, y_train, x_test):
 # Random Forest parameters
 rf_params = {
     'n_jobs':           -1,
-    'n_estimators':     500,
+    'n_estimators':     100,
     'warm_start':       True,
     # 'max_features': 0.2,
     'max_depth':        6,
@@ -103,7 +103,7 @@ rf_params = {
 # Extra Trees Parameters
 et_params = {
     'n_jobs':           -1,
-    'n_estimators':     500,
+    'n_estimators':     100,
     # 'max_features': 0.5,
     'max_depth':        8,
     'min_samples_leaf': 2,
@@ -112,13 +112,13 @@ et_params = {
 
 # AdaBoost parameters
 ada_params = {
-    'n_estimators':  500,
-    'learning_rate': 0.75
+    'n_estimators':  100,
+    'learning_rate': 0.1
 }
 
 # Gradient Boosting parameters
 gb_params = {
-    'n_estimators':     500,
+    'n_estimators':     100,
     # 'max_features': 0.2,
     'max_depth':        5,
     'min_samples_leaf': 2,
@@ -227,4 +227,4 @@ predictions = gbm.predict(x_test)
 # Generate Submission File
 StackingSubmission = pd.DataFrame({'customer_id': test_converted['id'],
                                    'claim_amount':       predictions})
-StackingSubmission.to_csv("./StackingSubmission.csv", index=False)
+StackingSubmission.to_csv("data/ensem_5.csv", index=False)

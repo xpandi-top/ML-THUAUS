@@ -17,6 +17,7 @@ import xgboost
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import LabelEncoder
+from sklearn.linear_model import LinearRegression, LogisticRegression,ElasticNet
 
 
 def json_load(arr):
@@ -197,19 +198,20 @@ def time_numeric(converted):
 def get_household_num(converted, other_features):
     def get_len(arr):
         if arr[other_features] is not np.nan:
-            return len(json.loads(arr[other_features].replace("\'", "\"")))
+            return min(len(json.loads(arr[other_features].replace("\'", "\""))), 9)
         return None
 
     converted['num_household'] = converted.apply(get_len, axis=1)
+    converted['num_household'] = converted['num_household'].fillna(0).astype(int)
     return converted
 
 
 # standard scale for data
 def scale_data(df, std_names, replace=False):
-    std_label = 'std_scale_' if replace is not True else ''
+    std_label = 'scale_' if replace is not True else ''
     for name in std_names:
-        # df.loc[:, std_label + name] = StandardScaler().fit_transform(df[name].values.reshape(-1, 1))
-        df.loc[:, std_label + name] = MinMaxScaler().fit_transform(df[name].values.reshape(-1, 1))
+        df.loc[:, std_label + name] = StandardScaler().fit_transform(df[name].values.reshape(-1, 1))
+        # df.loc[:, std_label + name] = MinMaxScaler().fit_transform(df[name].values.reshape(-1, 1))
         print(std_label + name)
     # print('===' * 4, 'standard scale finished')
     return df
@@ -306,14 +308,22 @@ def new_trans(data):
     data['root_area'] = data.apply(lambda x: x['square_footage'] ** 0.5, axis=1)
     data['data_time'] = data['Payment Completed_time'].apply(lambda x: datetime.datetime.fromtimestamp(x) if x >0 else datetime.datetime.fromtimestamp(0))
     # dtime = pd.Series([datetime.datetime.fromtimestamp(i) for i in data['Payment Completed_time']])
-    data['year'] = pd.DatetimeIndex(data['data_time']).year
+    data['year'] = 2019 - pd.DatetimeIndex(data['data_time']).year
+    # data['mul'] = data['num_household'] * data['number_of_bedrooms']
 
     data = data.drop(['data_time'], axis=1)
 
-    data = encode_address(data)
+    # data = encode_address(data)
     
     return data
 
+
+def split_people(data):
+    paid_people = data[data['Payment Completed_time'] > 0]
+    unpaid_people = data.loc[np.isnan(data['Payment Completed_time']), :]
+    claimed_people = paid_people[paid_people['Claim Started_time'] > 0]
+    never_claimed_people = paid_people.loc[np.isnan(paid_people['Claim Started_time']), :]
+    return paid_people, unpaid_people, claimed_people, never_claimed_people
 
 
 def transform_converted(_train_converted, _test_converted):
@@ -325,7 +335,8 @@ def transform_converted(_train_converted, _test_converted):
     time_features = ['Quote Started_time', 'Quote Completed_time', 'Payment Completed_time', 'Policy Cancelled_time',
                      'Claim Started_time', 'Claim Accepted_time', 'Claim Denied_time', 'Quote Incomplete']
 
-    numeric_features = ['age', 'square_footage']
+    numeric_features = ['age', 'square_footage', "area_per_room", "area_per_person"
+                        ]
     str_features = ['name', 'address', 'email']
     label = ['amount']
 
@@ -349,6 +360,8 @@ def transform_converted(_train_converted, _test_converted):
     _test_converted = transform_time_features(_test_converted, time_features)
     _test_converted = time_numeric(_test_converted)
     _test_converted = dummy_categorical_features(_test_converted, types, categorical_features)
+    # _test_house = pd.get_dummies(_test_converted["num_household"].astype(str), prefix='household').astype(int)
+    # _test_converted = pd.concat([_test_converted, _test_house], axis=1)
     _test_converted = scale_data(_test_converted, std_names=numeric_features)
     _test_converted = scale_data(_test_converted,
                                      std_names=['quote_time', 'payment_time', 'cancelled_time', 'claim_time',
@@ -361,6 +374,8 @@ def transform_converted(_train_converted, _test_converted):
     _train_converted = transform_time_features(_train_converted, time_features)
     _train_converted = time_numeric(_train_converted)
     _train_converted = dummy_categorical_features(_train_converted, types, categorical_features)
+    # _train_house = pd.get_dummies(_train_converted["num_household"].astype(str), prefix='household').astype(int)
+    # _train_converted = pd.concat([_train_converted, _train_house], axis=1)
     _train_converted = scale_data(_train_converted, std_names=numeric_features)
     _train_converted = scale_data(_train_converted,
                                       std_names=['quote_time', 'payment_time', 'cancelled_time', 'claim_time',
@@ -384,27 +399,29 @@ def transform_converted(_train_converted, _test_converted):
     _train_converted = _train_converted.drop('household', axis=1)
     _train_converted = _train_converted.drop(numeric_features, axis=1)
 
-    _test_converted = _test_converted.drop(['std_scale_square_footage',
-                                            # 'quote_time', 'payment_time', 'cancelled_time', 'claim_time',
+    _test_converted = _test_converted.drop([
+                                            # 'scale_square_footage',
+                                            # 'quote_time', 'payment_time',
+                                            # 'cancelled_time', 'claim_time',
                                             # 'accepted_time', 'denied_time',
-                                            'Quote Started_platform_mobile_app',
-                                            'Quote Started_platform_mobile_browser',
-                                            'Quote Started_platform_pc_browser',
-                                            'Quote Started_platform_phone_call',
-                                            'Quote Completed_platform_mobile_app',
-                                            'Quote Completed_platform_mobile_browser',
-                                            'Quote Completed_platform_pc_browser',
-                                            'Quote Completed_platform_phone_call',
-                                            'Payment Completed_platform_mobile_app',
-                                            'Payment Completed_platform_mobile_browser',
-                                            'Payment Completed_platform_pc_browser',
+                                            # 'Quote Started_platform_mobile_app',
+                                            # 'Quote Started_platform_mobile_browser',
+                                            # 'Quote Started_platform_pc_browser',
+                                            # 'Quote Started_platform_phone_call',
+                                            # 'Quote Completed_platform_mobile_app',
+                                            # 'Quote Completed_platform_mobile_browser',
+                                            # 'Quote Completed_platform_pc_browser',
+                                            # 'Quote Completed_platform_phone_call',
+                                            # 'Payment Completed_platform_mobile_app',
+                                            # 'Payment Completed_platform_mobile_browser',
+                                            # 'Payment Completed_platform_pc_browser',
                                             # 'Claim Started_platform_mobile_app',
                                             # 'Claim Started_platform_mobile_browser',
                                             # 'Claim Started_platform_pc_browser',
-                                            'Quote Incomplete_platform_mobile_app',
-                                            'Quote Incomplete_platform_mobile_browser',
-                                            'Quote Incomplete_platform_pc_browser',
-                                            'Quote Incomplete_platform_phone_call'
+                                            # 'Quote Incomplete_platform_mobile_app',
+                                            # 'Quote Incomplete_platform_mobile_browser',
+                                            # 'Quote Incomplete_platform_pc_browser',
+                                            # 'Quote Incomplete_platform_phone_call'
                                             ], axis=1)
 
     diff = list(set(_train_converted.columns) - set(_test_converted.columns))
@@ -415,13 +432,34 @@ def transform_converted(_train_converted, _test_converted):
     return _train_converted, _test_converted
 
 
+def matrix_correlation(paid_people, unpaid_people, claimed_people, never_claimed_people):
+    sample = 8890
+    paid = paid_people.sample(n=sample, random_state=1)
+    unpaid = unpaid_people.sample(n=sample, random_state=2)
+    claimed =claimed_people.sample(n=sample, random_state=3)
+    neverclaimed = never_claimed_people.sample(n=sample, random_state=3)
+    paid = paid.values
+    unpaid = unpaid.values
+    claimed = claimed.values
+    neverclaimed = neverclaimed.values
+    return paid, unpaid, claimed, neverclaimed
+
+
 if __name__ == "__main__":
     train_data, test_data, submission = load_saved_data()
+    # train_data, test_data = transform_converted(train_data, test_data)
+    eval_data = train_data[train_data['Payment Completed_time'] > 0]
+    eval_convert, t = transform_converted(eval_data, test_data)
+    eval_convert = eval_convert.drop(["id", "amount"], axis=1)
 
     train_paid, test_converted = transform_converted(train_data[train_data['amount'] > 0], test_data)
+
+
+    # train_unpaid, _ = transform_converted(train_data[np.isnan(train_data['amount'])], test_data)
+
     x_paid, y_paid = train_paid.drop(["id", "amount"], axis=1), train_paid["amount"]
-    x_train_paid, x_test_paid, y_train_paid, y_test_paid = train_test_split(x_paid, y_paid, test_size=0.3,
-                                                                            random_state=42)
+    x_train_paid, x_test_paid, y_train_paid, y_test_paid = train_test_split(x_paid, y_paid, test_size=0.3, random_state=42)
+    train_paid.to_csv('paid.csv')
 
     default_params = {'learning_rate':    0.1,
                       'n_estimators':     90,
@@ -437,31 +475,34 @@ if __name__ == "__main__":
                       }
     xgb = xgboost.XGBRegressor(**default_params)
     xgb.fit(x_train_paid, y_train_paid)
+    print(mean_squared_error(y_train_paid, xgb.predict(x_train_paid)) ** 0.5)
+
     y_pred_paid = xgb.predict(x_test_paid)
     print(mean_squared_error(y_pred_paid, y_test_paid) ** 0.5)
-
-    # params = {
-    #     # 'gamma':            [0, 0.1],
-    #     # 'subsample':        [0.6, 0.8, 0.7],
-    #     # 'colsample_bytree': [0.6, 0.8, 1.0],
-    #     # 'num_boost_round': [100, 250, 500],
-    #     # 'eta':             [0.05, 0.1, 0.2],
-    #     # 'learning_rate':   [0.05, 0.1, 0.2],
-    #     # 'max_depth':        [3, 4, 5],
-    #     # 'min_child_weight': [3, 4, 5, 6, 7],
-    #     # 'n_estimators':     [70, 80, 90, 100, 110, 120, 130]
-    # }
-    # gv = GridSearchCV(xgb, params, cv=3, scoring='neg_mean_squared_error', verbose=True, n_jobs=1)
-    # gv.fit(x_train_paid, y_train_paid)
-    # print(gv.best_params_)
-
+    #
+    # eval = xgb.predict(eval_convert)
+    #
+    # # params = {
+    # #     # 'gamma':            [0, 0.1],
+    # #     # 'subsample':        [0.6, 0.8, 0.7],
+    # #     # 'colsample_bytree': [0.6, 0.8, 1.0],
+    # #     # 'num_boost_round': [100, 250, 500],
+    # #     # 'eta':             [0.05, 0.1, 0.2],
+    # #     # 'learning_rate':   [0.05, 0.1, 0.2],
+    # #     # 'max_depth':        [3, 4, 5],
+    # #     # 'min_child_weight': [3, 4, 5, 6, 7],
+    # #     # 'n_estimators':     [70, 80, 90, 100, 110, 120, 130]
+    # # }
+    # # gv = GridSearchCV(xgb, params, cv=3, scoring='neg_mean_squared_error', verbose=True, n_jobs=1)
+    # # gv.fit(x_train_paid, y_train_paid)
+    # # print(gv.best_params_)
 
     y_pred_test = xgb.predict(test_converted.drop(['id', 'amount'], axis=1))
     my_submission = test_converted.loc[:, ['id', 'amount']]
     my_submission.columns = ['customer_id', 'claim_amount']
     my_submission["claim_amount"] = y_pred_test
-    my_submission.to_csv('data/drop_less_266.csv', index=None)
-
+    my_submission.to_csv('data/g.csv', index=None)
+    print("saved to：", 'data/g.csv')
 
     # x_all, y_all = train_converted.drop(["id", "amount"], axis=1), train_converted["amount"]
     # test_all = test_converted.drop(["id", "amount"], axis=1)
@@ -486,3 +527,19 @@ if __name__ == "__main__":
     # print(accuracy_score(y_test_all, y_pred_all))
     # print(recall_score(y_test_all, y_pred_all))
     # print(f1_score(y_test_all, y_pred_all))
+    #
+    # lr_params = {
+    #
+    # }
+    # lr = ElasticNet().fit(x_train_paid, y_train_paid)
+    # print(mean_squared_error(y_train_paid, lr.predict(x_train_paid)) ** 0.5)
+    #
+    # # y_pred_unpaid = xgb.predict(train_unpaid.drop(["id", "amount"], axis=1))
+    # y_pred_paid = lr.predict(x_test_paid)
+    # print(mean_squared_error(y_pred_paid, y_test_paid) ** 0.5)
+    # y_pred_test = lr.predict(test_converted.drop(['id', 'amount'], axis=1))
+    # my_submission = test_converted.loc[:, ['id', 'amount']]
+    # my_submission.columns = ['customer_id', 'claim_amount']
+    # my_submission["claim_amount"] = y_pred_test
+    # my_submission.to_csv('data/lr_g.csv', index=None)
+    # print("saved to：", 'data/lr_g.csv')
