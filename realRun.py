@@ -460,6 +460,7 @@ if __name__ == "__main__":
     x_paid, y_paid = train_paid.drop(["id", "amount"], axis=1), train_paid["amount"]
     x_train_paid, x_test_paid, y_train_paid, y_test_paid = train_test_split(x_paid, y_paid, test_size=0.3, random_state=42)
     train_paid.to_csv('paid.csv')
+    test_converted.to_csv('test_converted.csv')
 
     default_params = {'learning_rate':    0.1,
                       'n_estimators':     90,
